@@ -5,29 +5,29 @@ void btn_event_handler(lv_event_t *e)
 {
 	settings();
 }
-void up_event_handler(lv_event_t *e)
+void move_x(lv_event_t *e)
 {
 	fnc_send_line("$J=G91 F200 Y1", 0);
 }
-void down_event_handler(lv_event_t *e)
+void move_x_(lv_event_t *e)
 {
-	fnc_send_line("$J=G91 F200 Y-1",0);
+	fnc_send_line("$J=G91 F200 Y-1", 0);
 }
-void right_event_handler(lv_event_t *e)
+void move_y(lv_event_t *e)
 {
-	fnc_putstr("$J=G91 F200 X1");
+	fnc_send_line("$J=G91 F200 X1", 0);
 }
-void left_event_handler(lv_event_t *e)
+void move_y_(lv_event_t *e)
 {
-	fnc_putstr("$J=G91 F200 X-1");
+	fnc_send_line("$J=G91 F200 X-1", 0);
 }
-void upZ_event_handler(lv_event_t *e)
+void move_z(lv_event_t *e)
 {
-	fnc_putstr("$J=G91 F200 Z-1");
+	fnc_send_line("$J=G91 F200 Z-1", 0);
 }
-void downZ_event_handler(lv_event_t *e)
+void move_z_(lv_event_t *e)
 {
-	fnc_putstr("$J=G91 F200 Z1");
+	fnc_send_line("$J=G91 F200 Z1", 0);
 }
 
 static char *DRO_format(int axis_index, float position)
@@ -394,7 +394,6 @@ void lvgl_UI()
 	lv_label_set_long_mode(ui.screen_label_3, LV_LABEL_LONG_WRAP);
 	lv_obj_set_pos(ui.screen_label_3, 55, 50);
 	lv_obj_set_size(ui.screen_label_3, 65, 60);
-	lv_obj_add_flag(ui.screen_label_3, LV_OBJ_FLAG_CLICKABLE);
 
 	// Write style for screen_label_3, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
 	lv_obj_set_style_border_width(ui.screen_label_3, 0, LV_PART_MAIN);
@@ -822,10 +821,19 @@ void lvgl_UI()
 	lv_obj_t *screen_tabview_2_tab_5_label = lv_label_create(ui.screen_tabview_2_tab_5);
 	lv_label_set_text(screen_tabview_2_tab_5_label, "");
 
-	lv_obj_add_event_cb(ui.screen_label_3, up_event_handler, LV_EVENT_ALL, NULL);
-	lv_obj_add_event_cb(ui.screen_label_5, upZ_event_handler, LV_EVENT_ALL, NULL);
-	lv_obj_add_event_cb(ui.screen_label_4, down_event_handler, LV_EVENT_ALL, NULL);
-	lv_obj_add_event_cb(ui.screen_label_6, downZ_event_handler, LV_EVENT_ALL, NULL);
+	lv_obj_add_flag(ui.screen_label_1, LV_OBJ_FLAG_CLICKABLE);
+	lv_obj_add_flag(ui.screen_label_2, LV_OBJ_FLAG_CLICKABLE);
+	lv_obj_add_flag(ui.screen_label_3, LV_OBJ_FLAG_CLICKABLE);
+	lv_obj_add_flag(ui.screen_label_4, LV_OBJ_FLAG_CLICKABLE);
+	lv_obj_add_flag(ui.screen_label_5, LV_OBJ_FLAG_CLICKABLE);
+	lv_obj_add_flag(ui.screen_label_6, LV_OBJ_FLAG_CLICKABLE);
+
+	lv_obj_add_event_cb(ui.screen_label_1, move_x_, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(ui.screen_label_2, move_x, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(ui.screen_label_3, move_y, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(ui.screen_label_4, move_y_, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(ui.screen_label_5, move_z, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(ui.screen_label_6, move_z_, LV_EVENT_CLICKED, NULL);
 }
 
 void update_axis_labels()
