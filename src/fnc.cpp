@@ -1,9 +1,5 @@
 #include "main.h"
 
-#ifdef USE_LVGL
-extern void lvgl_UI();
-#endif
-
 String myState = "Err";
 float my_axis_positions[MAX_N_AXIS] = {0};
 int my_n_axis = 0;

@@ -31,12 +31,23 @@ void setup(void)
     lvgl_begin();
 #endif
     updateDisplay();
+    // DebugSerial.printf("Deafult free size: %d\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+    // DebugSerial.printf("PSRAM free size: %d\n", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 }
-
+unsigned long previousMillis = 0;
+const long interval = 5; // Interval in Millisekunden
 void loop(void)
 {
     fnc_poll();
 #ifdef USE_LVGL
-    lv_timer_handler();
+    unsigned long currentMillis = millis();
+
+    // Wenn genug Zeit vergangen ist, führe LVGL-Tasks aus
+    if (currentMillis - previousMillis >= interval)
+    {
+        previousMillis = currentMillis;
+        // lv_timer_handler();
+        lv_task_handler();
+    }
 #endif
 }
