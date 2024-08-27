@@ -2,11 +2,6 @@
 
 #include "main.h"
 
-static lv_disp_draw_buf_t draw_buf;
-static lv_color_t disp_draw_buf1[LCD_WIDTH * LCD_HEIGHT / 10];
-static lv_color_t disp_draw_buf2[LCD_WIDTH * LCD_HEIGHT / 10];
-static lv_disp_drv_t disp_drv;
-
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
     uint32_t w = (area->x2 - area->x1 + 1);
@@ -33,13 +28,23 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 
 void lvgl_begin()
 {
+    static lv_disp_drv_t disp_drv;
+    static lv_disp_draw_buf_t draw_buf;
+    // static lv_color_t disp_draw_buf1[LCD_WIDTH * LCD_HEIGHT / 10];
+    // static lv_color_t disp_draw_buf2[LCD_WIDTH * LCD_HEIGHT / 10];
+    static lv_color_t *disp_draw_buf1 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LCD_WIDTH * LCD_HEIGHT / 8,
+                                                                       MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    static lv_color_t *disp_draw_buf2 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * LCD_WIDTH * LCD_HEIGHT / 8,
+                                                                       MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+
     lv_init();
-    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf1, disp_draw_buf2, LCD_WIDTH * LCD_HEIGHT / 10);
+    // lv_png_init();
+    lv_disp_draw_buf_init(&draw_buf, disp_draw_buf1, disp_draw_buf2, LCD_WIDTH * LCD_HEIGHT / 8);
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = LCD_WIDTH;
     disp_drv.ver_res = LCD_HEIGHT;
     disp_drv.flush_cb = my_disp_flush;
-    disp_drv.full_refresh = 1;
+    disp_drv.full_refresh = 0;
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
 
@@ -51,135 +56,51 @@ void lvgl_begin()
     lvgl_UI();
 }
 
-// Beispielhafte Anzahl der Achsen
-int axis_count = 6; // XYZABC
-
-// Positionswerte der Achsen
-int axis_positions[6] = {0, 0, 0, 0, 0, 0};
-
-// Limit Switch Status
-bool limit_switches[6] = {false, false, false, false, false, false};
-
-// Geräte Status
-bool air_status = false;
-bool coolant_status = false;
-void update_ui();
-void update_axis_data_from_serial()
+static char *DRO_format(int axis_index, float position)
 {
-    // Beispiel: Empfangen von Daten über Serial
-    if (Serial.available())
-    {
-        String data = Serial.readString();
-
-        // Parsen der Daten
-        sscanf(data.c_str(), "X:%d Y:%d Z:%d A:%d B:%d C:%d",
-               &axis_positions[0], &axis_positions[1], &axis_positions[2],
-               &axis_positions[3], &axis_positions[4], &axis_positions[5]);
-
-        // Update der UI Elemente basierend auf den neuen Werten
-        update_ui();
-    }
+    static char buf[20];
+    snprintf(buf, sizeof(buf), "%c: %.2f", ui.axesNames[axis_index], position);
+    return buf;
 }
 
-void create_cnc_ui(lv_obj_t *parent)
+void update_axis_labels()
 {
-    // Menü erstellen
-    lv_obj_t *menu = lv_menu_create(parent);
-    lv_obj_set_size(menu, 480, 320);
-    lv_obj_center(menu);
-
-    // Hauptseite des Menüs
-    lv_obj_t *root_page = lv_menu_page_create(menu, "CNC Controller");
-
-    // Abschnitt für Achsenpositionen
-    lv_obj_t *axis_section = lv_menu_section_create(root_page);
-
-    for (int i = 0; i < axis_count; i++)
+    if (my_n_axis > 0)
     {
-        lv_obj_t *label = lv_label_create(axis_section);
-        char buf[32];
-        sprintf(buf, "Axis %c: %d", 'X' + i, axis_positions[i]);
-        lv_label_set_text(label, buf);
+        if (!ui.start)
+        {
+
+            for (int i = 0; i < my_n_axis; i++)
+            {
+                ui.my_axis_labels[i] = lv_label_create(ui.screen_1_cont_1);
+                lv_obj_set_pos(ui.my_axis_labels[i], 60, 155 + 30 * i);
+                lv_obj_set_size(ui.my_axis_labels[i], 200, 27);
+                lv_obj_set_style_text_color(ui.my_axis_labels[i], lv_color_hex(0x5abd68), LV_PART_MAIN);
+                lv_obj_set_style_text_font(ui.my_axis_labels[i], &lv_font_montserrat_30, LV_PART_MAIN);
+                lv_obj_set_style_text_align(ui.my_axis_labels[i], LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
+
+                ui.my_limits_labels[i] = lv_led_create(ui.screen_1_cont_1);
+                lv_led_set_color(ui.my_limits_labels[i], lv_color_hex(0x00ff40));
+                lv_obj_set_pos(ui.my_limits_labels[i], 15, 164 + 30 * i);
+                lv_obj_set_size(ui.my_limits_labels[i], 15, 15);
+            }
+            ui.start = 1;
+            update_label();
+            update_texts();
+        }
+
+        for (int i = 0; i < my_n_axis; i++)
+        {
+            lv_label_set_text(ui.my_axis_labels[i], DRO_format(i, my_axis_positions[i]));
+            // lv_led_set_brightness(ui.my_limits_labels[i], myLimits[i] == 1 ? 255 : 0);
+            lv_obj_set_style_opa(ui.my_limits_labels[i], myLimits[i] == 1 ? 255 : 0, LV_PART_MAIN);
+        }
+
+        lv_label_set_text(ui.MyState, myState.c_str());
+        lv_obj_set_style_text_color(ui.MyState, myState == "Alarm" ? lv_color_hex(RED) : myState.startsWith("Hold") ? lv_color_hex(YELLOW)
+                                                                                                                    : lv_color_hex(0x5abd68),
+                                    0);
     }
-
-    // Abschnitt für Limit Switches
-    lv_obj_t *limit_section = lv_menu_section_create(root_page);
-    for (int i = 0; i < axis_count; i++)
-    {
-        lv_obj_t *label = lv_label_create(limit_section);
-        char buf[32];
-        sprintf(buf, "Limit %c: %s", 'X' + i, limit_switches[i] ? "ON" : "OFF");
-        lv_label_set_text(label, buf);
-    }
-
-    // Abschnitt für Geräte
-    lv_obj_t *device_section = lv_menu_section_create(root_page);
-
-    lv_obj_t *air_btn = lv_btn_create(device_section);
-    lv_obj_set_width(air_btn, 150);
-    lv_obj_t *label = lv_label_create(air_btn);
-    lv_label_set_text(label, "Air");
-
-    lv_obj_t *coolant_btn = lv_btn_create(device_section);
-    lv_obj_set_width(coolant_btn, 150);
-    label = lv_label_create(coolant_btn);
-    lv_label_set_text(label, "Coolant");
-
-    // Abschnitt für Einstellungen
-    lv_obj_t *settings_section = lv_menu_section_create(root_page);
-
-    // lv_obj_t *vel_slider = create_slider(settings_section, LV_SYMBOL_SETTINGS, "Velocity", 0, 150, 120, velocity_slider_event_cb);
-    // lv_obj_t *acc_slider = create_slider(settings_section, LV_SYMBOL_SETTINGS, "Acceleration", 0, 150, 50, acceleration_slider_event_cb);
-    // lv_obj_t *other_slider = create_slider(settings_section, LV_SYMBOL_SETTINGS, "Other", 0, 150, 80, weight_limit_slider_event_cb);
-
-    // Hauptseite zum Menü hinzufügen
-    lv_menu_set_page(menu, root_page);
-}
-
-// Beispielhafte Funktion zum Erstellen eines Sliders
-// static lv_obj_t *create_slider(lv_obj_t *parent, const char *icon, const char *txt, int32_t min, int32_t max, int32_t val)
-// {
-//     lv_obj_t *obj = lv_menu_item_create(parent, NULL, txt, NULL, NULL);
-
-//     lv_obj_t *slider = lv_slider_create(obj);
-//     lv_obj_set_flex_grow(slider, 1);
-//     lv_slider_set_range(slider, min, max);
-//     lv_slider_set_value(slider, val, LV_ANIM_OFF);
-
-//     return obj;
-// }
-
-void update_ui()
-{
-    // // Aktualisiere die Achsenpositionen
-    // lv_obj_t *axis_section = ...; // Verweis auf die Achsen Sektion
-    // for (int i = 0; i < axis_count; i++)
-    // {
-    //     lv_obj_t *label = ...; // Verweis auf das entsprechende Label
-    //     char buf[32];
-    //     sprintf(buf, "Axis %c: %d", 'X' + i, axis_positions[i]);
-    //     lv_label_set_text(label, buf);
-    // }
-
-    // // Aktualisiere die Limit Switches
-    // lv_obj_t *limit_section = ...; // Verweis auf die Limit Sektion
-    // for (int i = 0; i < axis_count; i++)
-    // {
-    //     lv_obj_t *label = ...; // Verweis auf das entsprechende Label
-    //     char buf[32];
-    //     sprintf(buf, "Limit %c: %s", 'X' + i, limit_switches[i] ? "ON" : "OFF");
-    //     lv_label_set_text(label, buf);
-    // }
-
-    // // Aktualisiere den Status der Geräte (Air, Coolant)
-    // lv_obj_t *air_btn = ...; // Verweis auf den Air Button
-    // lv_obj_t *coolant_btn = ...; // Verweis auf den Coolant Button
-
-    // lv_obj_t *label = lv_label_get_text(lv_obj_get_child(air_btn, NULL));
-    // lv_label_set_text(label, air_status ? "Air: ON" : "Air: OFF");
-
-    // label = lv_label_get_text(lv_obj_get_child(coolant_btn, NULL));
-    // lv_label_set_text(label, coolant_status ? "Coolant: ON" : "Coolant: OFF");
 }
 
 #endif

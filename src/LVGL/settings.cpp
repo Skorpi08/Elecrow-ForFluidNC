@@ -1,4 +1,4 @@
-#ifdef USE_LVGL
+#ifdef USE_LVGL8
 #include "main.h"
 
 enum

@@ -1,4 +1,4 @@
-#ifdef USE_LVGL
+#ifdef USE_LVGL8
 #include "main.h"
 
 void btn_event_handler(lv_event_t *e)
@@ -30,12 +30,7 @@ void move_z_(lv_event_t *e)
 	fnc_send_line("$J=G91 F200 Z1", 0);
 }
 
-static char *DRO_format(int axis_index, float position)
-{
-	static char buf[20];
-	snprintf(buf, sizeof(buf), "%c: %.2f", ui.axesNames[axis_index], position);
-	return buf;
-}
+
 
 void lvgl_UI()
 {
@@ -836,32 +831,5 @@ void lvgl_UI()
 	lv_obj_add_event_cb(ui.screen_label_6, move_z_, LV_EVENT_CLICKED, NULL);
 }
 
-void update_axis_labels()
-{
-	if (my_n_axis > 0)
-	{
-		if (ui.start == 0)
-		{
-			for (int i = 0; i < my_n_axis; i++)
-			{
-				ui.my_axis_labels[i] = lv_label_create(ui.screen_tabview_1_tab_1);
-				// lv_label_set_text(ui.my_axis_labels[i], DRO_format(i, my_axis_positions[i]));
-				lv_obj_set_pos(ui.my_axis_labels[i], 0, 60 * i);
-				// lv_table_set_row_cnt(ui.screen_table_1, my_n_axis);
-				// lv_table_set_cell_value(ui.screen_table_1, i, 0, &ui.axesNames[i]);
-				// lv_table_set_row_cnt(ui.screen_table_1, my_n_axis);
-				// lv_table_set_cell_value(ui.screen_table_1, i, 1, DRO_format(i, my_axis_positions[i]));
-			}
-			ui.start = 1;
-		}
 
-		for (int i = 0; i < my_n_axis; i++)
-		{
-
-			lv_label_set_text(ui.my_axis_labels[i], DRO_format(i, my_axis_positions[i]));
-		}
-
-		lv_label_set_text(ui.screen_label_11, myState.c_str());
-	}
-}
 #endif
